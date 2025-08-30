@@ -30,3 +30,5 @@ app.get('/db-check', async (_, res) => {
 
 registerSnapshotRoutes(app);
 export default app;   // ← no app.listen()
+
+// redeploy
