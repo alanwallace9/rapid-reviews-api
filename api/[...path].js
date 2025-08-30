@@ -1,4 +1,4 @@
-export const config = { runtime: 'nodejs18.x' };
+export const config = { runtime: 'nodejs' };
 
 import app from '../src/app.js';
 
