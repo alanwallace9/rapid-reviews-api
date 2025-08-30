@@ -1,4 +1,10 @@
 {
   "version": 2,
-  "framework": null
+  "framework": null,
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.js" }
+  ],
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs18.x" }
+  }
 }
