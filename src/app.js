@@ -4,8 +4,11 @@ import { registerSnapshotRoutes } from './routes/snapshot.js';
 import { supaAdmin } from './lib/supabaseAdmin.js';
 
 const app = express();
-const api = express.Router();  // 👈 everything under /api
 
+// Mount everything under /api (so external URLs are /api/*)
+const api = express.Router();
+
+// CORS
 const allowedOrigins = (process.env.ALLOWED_ORIGIN || '')
   .split(',').map(s => s.trim()).filter(Boolean);
 
@@ -16,11 +19,12 @@ app.use(cors({
     return ok ? cb(null, true) : cb(new Error('Not allowed by CORS'));
   }
 }));
+
 app.use(express.json({ limit: '1mb' }));
 
-// ---- Routes mounted on /api ----
+// ---- Routes on /api ----
 api.get('/health', (_, res) => res.json({ ok: true }));
-api.get('/ping', (_, res) => res.json({ ok: true }));
+
 api.get('/db-check', async (_, res) => {
   try {
     const { data, error } = await supaAdmin
@@ -35,31 +39,23 @@ api.get('/db-check', async (_, res) => {
   }
 });
 
-registerSnapshotRoutes(api); // << register POST /snapshot, GET /snapshot/:token
+// Register business routes on the /api router
+registerSnapshotRoutes(api);
 
-// (optional) route inspector for debugging
-api.get('/routes', (_, res) => {
-  const out = [];
-  try {
-    // Inspect the API router stack
-    if (api.stack) {
-      api.stack.forEach(layer => {
-        if (layer.route) {
-          const path = layer.route.path;
-          const methods = Object.keys(layer.route.methods)
-            .filter(Boolean)
-            .map(m => m.toUpperCase());
-          methods.forEach(m => out.push({ method: m, path: `/api${path}` }));
-        }
-      });
-    }
-    res.json(out);
-  } catch (e) {
-    res.json({ error: 'Could not inspect routes', message: e.message });
-  }
+// Simple route inspector (GET /api/routes)
+api.get('/routes', (req, res) => {
+  const out = (api.stack || [])
+    .filter(layer => layer.route && layer.route.path)
+    .flatMap(layer => {
+      const path = layer.route.path;
+      const methods = Object.keys(layer.route.methods || {}).map(m => m.toUpperCase());
+      return methods.map(m => ({ method: m, path: `/api${path}` }));
+    });
+  res.json(out);
 });
 
-// Mount everything under /api
+// Mount router at /api
 app.use('/api', api);
 
 export default app; // no app.listen()
+
