@@ -20,7 +20,7 @@ app.use(express.json({ limit: '1mb' }));
 
 // ---- Routes mounted on /api ----
 api.get('/health', (_, res) => res.json({ ok: true }));
-
+api.get('/ping', (_, res) => res.json({ ok: true }));
 api.get('/db-check', async (_, res) => {
   try {
     const { data, error } = await supaAdmin
