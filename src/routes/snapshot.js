@@ -7,9 +7,9 @@ function pickBusinessType(types = []) {
   return types[0] || null;
 }
 
-export function registerSnapshotRoutes(app) {
-  // IMPORTANT: no /api prefix here
-  app.post('/snapshot', async (req, res) => {
+export function registerSnapshotRoutes(router) {
+  // POST /api/snapshot (because router is mounted at /api)
+  router.post('/snapshot', async (req, res) => {
     try {
       const { place_id, business_name, city, state } = req.body || {};
       if (!place_id || !business_name) {
@@ -91,8 +91,8 @@ export function registerSnapshotRoutes(app) {
     }
   });
 
-  // OPTIONAL: read by token (for your results page)
-  app.get('/snapshot/:token', async (req, res) => {
+  // GET /api/snapshot/:token (because router is mounted at /api)
+  router.get('/snapshot/:token', async (req, res) => {
     try {
       const { token } = req.params;
       const { data, error } = await supaAdmin
