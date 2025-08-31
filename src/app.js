@@ -20,7 +20,7 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/health', (_, res) => res.json({ ok: true }));
 app.get('/db-check', async (_, res) => {
   try {
-    const { data, error } = await supaAdmin.from('rapid.snapshots').select('*').limit(1);
+    const { data, error } = await supaAdmin.schema('rapid').from('snapshots').select('*').limit(1);
     if (error) return res.status(500).json({ error });
     res.json({ ok: true, rows: data.length });
   } catch (e) {
