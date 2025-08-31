@@ -15,6 +15,8 @@ export function registerSnapshotRoutes(router) {
       if (!place_id || !business_name) {
         return res.status(400).json({ error: 'missing_place_id_or_name' });
       }
+// Quick sanity: GET /api/snapshot/ping -> { ok: true }
+app.get('/snapshot/ping', (req, res) => res.json({ ok: true }));
 
       const token = uuidv4().replace(/-/g, '');
 
