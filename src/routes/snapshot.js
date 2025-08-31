@@ -18,8 +18,7 @@ export function registerSnapshotRoutes(app) {
       const token = uuidv4().replace(/-/g, '');
 
       // 1) insert pending row
-      const { data: snap, error: insErr } = await supaAdmin
-        .from('rapid.snapshots')
+      const { data: snap, error: insErr } = await supaAdmin.schema('rapid').from('snapshots')
         .insert({
           token,
           business_name,
@@ -72,9 +71,8 @@ export function registerSnapshotRoutes(app) {
       }
 
       // 4) update row to ready
-      await supaAdmin
-        .from('rapid.snapshots')
-        .update({
+      await supaAdmin.schema('rapid').from('snapshots')
+          .update({
           current_rating: rating,
           current_reviews: reviews,
           competitors,
@@ -89,4 +87,26 @@ export function registerSnapshotRoutes(app) {
       return res.status(500).json({ error: 'server_error' });
     }
   });
-}
+  
+ // 5) GET Section
+  app.get('/api/snapshot/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      const { data, error } = await supaAdmin
+        .schema('rapid')
+        .from('snapshots')
+        .select('business_name, city, state, current_rating, current_reviews, competitors, updated_at')
+        .eq('token', token)
+        .maybeSingle();
+
+      if (error) return res.status(500).json({ error: 'db_error', details: error.message });
+      if (!data) return res.status(404).json({ error: 'not_found' });
+
+      res.json(data);
+    } catch (e) {
+      console.error('GET /api/snapshot/:token error', e);
+      res.status(500).json({ error: 'server_error' });
+    }
+  });
+}   // 👈 leave this here (end of registerSnapshotRoutes)
