@@ -29,6 +29,23 @@ app.get('/db-check', async (_, res) => {
 });
 
 registerSnapshotRoutes(app);
+
+// (TEMP) Route inspector for debugging 404s
+app.get('/routes', (_, res) => {
+  const out = [];
+  app._router.stack.forEach((layer) => {
+    if (layer.route) {
+      const path = layer.route.path;
+      const methods = Object.keys(layer.route.methods)
+        .filter(Boolean)
+        .map(m => m.toUpperCase());
+      methods.forEach(m => out.push({ method: m, path }));
+    }
+  });
+  res.json(out);
+});
+
+
 export default app;   // ← no app.listen()
 
 // redeploy again
