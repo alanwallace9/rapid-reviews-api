@@ -32,7 +32,17 @@ export function registerSnapshotRoutes(router) {
         .select()
         .single();
 
-      if (insErr) return res.status(500).json({ error: 'db_insert_failed' });
+            if (insErr) {
+        console.error('INSERT error:', insErr);
+        return res.status(500).json({
+          error: 'db_insert_failed',
+          code: insErr.code || null,
+          message: insErr.message || null,
+          details: insErr.details || null,
+          hint: insErr.hint || null
+        });
+      }
+
 
       // 2) Place Details (server key)
       const fields = ['rating','user_ratings_total','types','name','geometry'].join(',');
