@@ -83,7 +83,7 @@ export function registerSnapshotRoutes(app) {
 
       return res.json({ token });
     } catch (e) {
-      console.error('POST /api/snapshot error', e);
+      console.error('POST /snapshot error', e);
       return res.status(500).json({ error: 'server_error' });
     }
   });
@@ -105,8 +105,8 @@ export function registerSnapshotRoutes(app) {
 
       res.json(data);
     } catch (e) {
-      console.error('GET /api/snapshot/:token error', e);
+      console.error('GET /snapshot/:token error', e);
       res.status(500).json({ error: 'server_error' });
     }
   });
-}   // 👈 leave this here (end of registerSnapshotRoutes)
+}   // leave this here (end of registerSnapshotRoutes)
