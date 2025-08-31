@@ -40,22 +40,26 @@ registerSnapshotRoutes(api); // << register POST /snapshot, GET /snapshot/:token
 // (optional) route inspector for debugging
 api.get('/routes', (_, res) => {
   const out = [];
-  app._router.stack.concat(api.stack).forEach(layer => {
-    const r = layer.route;
-    if (r) {
-      const methods = Object.keys(r.methods).map(m => m.toUpperCase());
-      methods.forEach(m => out.push({ method: m, path: r.path }));
+  try {
+    // Inspect the API router stack
+    if (api.stack) {
+      api.stack.forEach(layer => {
+        if (layer.route) {
+          const path = layer.route.path;
+          const methods = Object.keys(layer.route.methods)
+            .filter(Boolean)
+            .map(m => m.toUpperCase());
+          methods.forEach(m => out.push({ method: m, path: `/api${path}` }));
+        }
+      });
     }
-  });
-  res.json(out);
+    res.json(out);
+  } catch (e) {
+    res.json({ error: 'Could not inspect routes', message: e.message });
+  }
 });
 
 // Mount everything under /api
 app.use('/api', api);
 
 export default app; // no app.listen()
-
-
-export default app;   // ← no app.listen()
-
-// redeploy again
