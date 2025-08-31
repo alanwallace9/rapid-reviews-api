@@ -8,7 +8,7 @@ function pickBusinessType(types = []) {
 }
 
 export function registerSnapshotRoutes(app) {
-  app.post('/api/snapshot', async (req, res) => {
+  app.post('/snapshot', async (req, res) => {
     try {
       const { place_id, business_name, city, state } = req.body || {};
       if (!place_id || !business_name) {
@@ -89,7 +89,7 @@ export function registerSnapshotRoutes(app) {
   });
   
  // 5) GET Section
-  app.get('/api/snapshot/:token', async (req, res) => {
+  app.get('/snapshot/:token', async (req, res) => {
     try {
       const { token } = req.params;
 
