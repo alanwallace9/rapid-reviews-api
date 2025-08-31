@@ -4,6 +4,7 @@ import { registerSnapshotRoutes } from './routes/snapshot.js';
 import { supaAdmin } from './lib/supabaseAdmin.js';
 
 const app = express();
+const api = express.Router();  // 👈 everything under /api
 
 const allowedOrigins = (process.env.ALLOWED_ORIGIN || '')
   .split(',').map(s => s.trim()).filter(Boolean);
@@ -17,10 +18,16 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 
-app.get('/health', (_, res) => res.json({ ok: true }));
-app.get('/db-check', async (_, res) => {
+// ---- Routes mounted on /api ----
+api.get('/health', (_, res) => res.json({ ok: true }));
+
+api.get('/db-check', async (_, res) => {
   try {
-    const { data, error } = await supaAdmin.schema('rapid').from('snapshots').select('*').limit(1);
+    const { data, error } = await supaAdmin
+      .schema('rapid')
+      .from('snapshots')
+      .select('*')
+      .limit(1);
     if (error) return res.status(500).json({ error });
     res.json({ ok: true, rows: data.length });
   } catch (e) {
@@ -28,22 +35,25 @@ app.get('/db-check', async (_, res) => {
   }
 });
 
-registerSnapshotRoutes(app);
+registerSnapshotRoutes(api); // << register POST /snapshot, GET /snapshot/:token
 
-// (TEMP) Route inspector for debugging 404s
-app.get('/routes', (_, res) => {
+// (optional) route inspector for debugging
+api.get('/routes', (_, res) => {
   const out = [];
-  app._router.stack.forEach((layer) => {
-    if (layer.route) {
-      const path = layer.route.path;
-      const methods = Object.keys(layer.route.methods)
-        .filter(Boolean)
-        .map(m => m.toUpperCase());
-      methods.forEach(m => out.push({ method: m, path }));
+  app._router.stack.concat(api.stack).forEach(layer => {
+    const r = layer.route;
+    if (r) {
+      const methods = Object.keys(r.methods).map(m => m.toUpperCase());
+      methods.forEach(m => out.push({ method: m, path: r.path }));
     }
   });
   res.json(out);
 });
+
+// Mount everything under /api
+app.use('/api', api);
+
+export default app; // no app.listen()
 
 
 export default app;   // ← no app.listen()
