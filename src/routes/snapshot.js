@@ -7,22 +7,23 @@ function pickBusinessType(types = []) {
   return types[0] || null;
 }
 
-export function registerSnapshotRoutes(router) {
-  // POST /api/snapshot (because router is mounted at /api)
-  router.post('/snapshot', async (req, res) => {
+export function registerSnapshotRoutes(app) {
+  // Quick sanity: GET /api/snapshot/ping -> { ok: true }
+  app.get('/snapshot/ping', (req, res) => res.json({ ok: true }));
+
+  // POST /api/snapshot  (create + return token)
+  app.post('/snapshot', async (req, res) => {
     try {
       const { place_id, business_name, city, state } = req.body || {};
       if (!place_id || !business_name) {
         return res.status(400).json({ error: 'missing_place_id_or_name' });
       }
-// Quick sanity: GET /api/snapshot/ping -> { ok: true }
-app.get('/snapshot/ping', (req, res) => res.json({ ok: true }));
 
       const token = uuidv4().replace(/-/g, '');
 
-      // 1) insert pending row
       const { data: snap, error: insErr } = await supaAdmin
-        .schema('rapid').from('snapshots')
+        .schema('rapid')
+        .from('snapshots')
         .insert({
           token,
           business_name,
@@ -34,7 +35,7 @@ app.get('/snapshot/ping', (req, res) => res.json({ ok: true }));
         .select()
         .single();
 
-            if (insErr) {
+      if (insErr) {
         console.error('INSERT error:', insErr);
         return res.status(500).json({
           error: 'db_insert_failed',
@@ -45,8 +46,7 @@ app.get('/snapshot/ping', (req, res) => res.json({ ok: true }));
         });
       }
 
-
-      // 2) Place Details (server key)
+      // Google Place Details
       const fields = ['rating','user_ratings_total','types','name','geometry'].join(',');
       const detUrl =
         `https://maps.googleapis.com/maps/api/place/details/json` +
@@ -61,7 +61,7 @@ app.get('/snapshot/ping', (req, res) => res.json({ ok: true }));
       const center  = result?.geometry?.location || null;
       const chosenType = pickBusinessType(result?.types || []);
 
-      // 3) Nearby competitors (optional)
+      // Nearby competitors (optional)
       let competitors = [];
       if (center?.lat && center?.lng && chosenType) {
         const nearUrl =
@@ -84,9 +84,10 @@ app.get('/snapshot/ping', (req, res) => res.json({ ok: true }));
           }));
       }
 
-      // 4) update row to ready
+      // Update row to ready
       await supaAdmin
-        .schema('rapid').from('snapshots')
+        .schema('rapid')
+        .from('snapshots')
         .update({
           current_rating: rating,
           current_reviews: reviews,
@@ -103,24 +104,40 @@ app.get('/snapshot/ping', (req, res) => res.json({ ok: true }));
     }
   });
 
-  // GET /api/snapshot/:token (because router is mounted at /api)
-  router.get('/snapshot/:token', async (req, res) => {
+  // GET /api/snapshot/:token
+  app.get('/snapshot/:token', async (req, res) => {
     try {
       const { token } = req.params;
       const { data, error } = await supaAdmin
-        .schema('rapid').from('snapshots')
+        .schema('rapid')
+        .from('snapshots')
         .select('business_name, city, state, current_rating, current_reviews, competitors, updated_at')
         .eq('token', token)
         .maybeSingle();
 
       if (error) return res.status(500).json({ error: 'db_error', details: error.message });
-      if (!data) return res.status(404).json({ error: 'not_found' });
-
+      if (!data)  return res.status(404).json({ error: 'not_found' });
       res.json(data);
     } catch (e) {
-      console.error('GET /snapshot/:token error', e);
       res.status(500).json({ error: 'server_error' });
     }
   });
+
+  // Optional: GET /api/snapshot?token=...
+  app.get('/snapshot', async (req, res) => {
+    const token = req.query.token;
+    if (!token) return res.status(400).json({ error: 'missing_token' });
+    const { data, error } = await supaAdmin
+      .schema('rapid')
+      .from('snapshots')
+      .select('business_name, city, state, current_rating, current_reviews, competitors, updated_at')
+      .eq('token', token)
+      .maybeSingle();
+
+    if (error) return res.status(500).json({ error: 'db_error', details: error.message });
+    if (!data)  return res.status(404).json({ error: 'not_found' });
+    res.json(data);
+  });
 }
+
 
